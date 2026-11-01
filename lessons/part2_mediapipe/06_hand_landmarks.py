@@ -40,12 +40,16 @@ Try this
 --------
 1. Press p and look at the z values. Which landmark is always 0? What does
    a negative z mean? (Move a finger toward the camera and press p again.)
+   Landmark 0 (the wrist).
+   It means the point is closer to the camera than the wrist.
+
 2. Draw a big circle on the index fingertip (landmark 8) only.
 3. Print the pixel distance between the thumb tip (4) and index tip (8).
    Pinch your fingers together: what's the smallest distance you get?
 """
 
 import argparse
+import math
 import time
 from pathlib import Path
 
@@ -127,6 +131,9 @@ def to_pixel(landmark, width, height):
 
 
 def draw_hand(frame, landmarks, show_numbers):
+
+
+
     """Draw one hand's skeleton.
 
     Args:
@@ -144,6 +151,8 @@ def draw_hand(frame, landmarks, show_numbers):
         if show_numbers:
             cv2.putText(frame, str(i), (point[0] + 6, point[1] - 6),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 255), 1)
+
+    cv2.circle(frame, points[8], 25, (255, 0, 255), 3)
 
 
 def print_landmarks(landmarks):
@@ -189,6 +198,16 @@ def main():
             h, w = frame.shape[:2]
             for landmarks, handedness in zip(result.hand_landmarks, result.handedness):
                 draw_hand(frame, landmarks, show_numbers)
+
+                thumb_tip = to_pixel(landmarks[4], w, h)
+                index_tip = to_pixel(landmarks[8], w, h)
+                distance = math.hypot(index_tip[0] - thumb_tip[0], index_tip[1] - thumb_tip[1])
+                
+                
+                cv2.putText(frame, f"Dist: {distance:.1f}px", (index_tip[0] + 10, index_tip[1] - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+                
                 label = handedness[0].category_name          # "Left" or "Right"
                 score = handedness[0].score
                 wrist = to_pixel(landmarks[0], w, h)

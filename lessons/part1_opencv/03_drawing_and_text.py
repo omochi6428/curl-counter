@@ -27,8 +27,13 @@ Controls
 Try this
 --------
 1. Change RED to (255, 0, 0). What color are the markers now? Why?
+This is because OpenCV uses BGR (Blue, Green, Red) color order, 
+ so (255, 0, 0) means full Blue and zero Red.
+
 2. Make the crosshair follow your mouse instead of staying in the centre.
    (Hint: the mouse callback also receives cv2.EVENT_MOUSEMOVE events.)
+
+
 3. Draw a line connecting the markers in the order you clicked them.
 """
 
@@ -41,7 +46,7 @@ import cv2
 WINDOW_NAME = "Lesson 03 - Drawing"
 
 # Colors are (Blue, Green, Red), each 0-255.
-RED = (0, 0, 255)
+RED = ( 255, 0, 0)
 GREEN = (0, 200, 0)
 YELLOW = (0, 255, 255)
 WHITE = (255, 255, 255)
@@ -82,7 +87,7 @@ class FpsCounter:
             self.value = self.smoothing * self.value + (1 - self.smoothing) * instant
 
 
-def on_mouse(event, x, y, flags, markers):
+def on_mouse(event, x, y, flags, state):
     """Called by OpenCV whenever the mouse does something in our window.
 
     We register this function with cv2.setMouseCallback below; we never call
@@ -95,8 +100,11 @@ def on_mouse(event, x, y, flags, markers):
         markers: The list we passed as the last argument to setMouseCallback.
     """
     if event == cv2.EVENT_LBUTTONDOWN:
-        markers.append((x, y))
+        state["markers"].append((x, y))
         print(f"Marker at x={x}, y={y}")
+    elif event == cv2.EVENT_MOUSEMOVE:
+        state["mouse_x"] = x
+        state["mouse_y"] = y
 
 
 def draw_info_box(frame, lines):
@@ -127,10 +135,16 @@ def main():
     if not cap.isOpened():
         raise SystemExit(f"Could not open camera {args.camera}. See lesson 01 for help.")
 
-    markers = []                       # filled in by on_mouse
+    state = {
+        "markers": [],
+        "mouse_x": -1,  
+        "mouse_y": -1
+
+    }
+
     fps = FpsCounter()
     cv2.namedWindow(WINDOW_NAME)
-    cv2.setMouseCallback(WINDOW_NAME, on_mouse, markers)
+    cv2.setMouseCallback(WINDOW_NAME, on_mouse, state)
 
     try:
         while True:
@@ -139,7 +153,10 @@ def main():
                 break
             frame = cv2.flip(frame, 1)
             h, w = frame.shape[:2]
-            cx, cy = w // 2, h // 2    # "//" divides and rounds down: pixels must be whole numbers
+            if state["mouse_x"] == -1:
+                cx, cy = w // 2, h // 2 
+            else:
+                cx, cy = state["mouse_x"], state["mouse_y"]   # "//" divides and rounds down: pixels must be whole numbers
 
             # Crosshair in the centre: two lines and a circle.
             cv2.line(frame, (cx - 40, cy), (cx + 40, cy), GREEN, 2)
@@ -150,8 +167,13 @@ def main():
             cv2.rectangle(frame, (w - 220, h - 160), (w - 20, h - 20), YELLOW, 3)
             cv2.putText(frame, "a box", (w - 205, h - 120), FONT, 0.8, YELLOW, 2)
 
+            if len(state["markers"])>=2:
+                for i in range(len(state["markers"]) - 1):
+                    pt1 = state["markers"][i]
+                    pt2 = state["markers"][i + 1]
+                    cv2.line(frame, pt1, pt2, YELLOW, 2)
             # Markers from mouse clicks: filled red circles with their coordinates.
-            for (x, y) in markers:
+            for (x, y) in state["markers"]:
                 cv2.circle(frame, (x, y), 8, RED, -1)
                 cv2.putText(frame, f"({x},{y})", (x + 12, y - 12), FONT, 0.5, RED, 2)
 
@@ -160,7 +182,7 @@ def main():
                 f"FPS: {fps.value:5.1f}",
                 f"Size: {w} x {h}",
                 datetime.now().strftime("Time: %H:%M:%S"),
-                f"Markers: {len(markers)} (c = clear)",
+                f"Markers: {len(state["markers"])} (c = clear)",
             ])
 
             cv2.imshow(WINDOW_NAME, frame)
@@ -168,7 +190,7 @@ def main():
             if key in (ord("q"), 27):
                 break
             if key == ord("c"):
-                markers.clear()
+                state["markers"].clear()
             if cv2.getWindowProperty(WINDOW_NAME, cv2.WND_PROP_VISIBLE) < 1:
                 break
     finally:

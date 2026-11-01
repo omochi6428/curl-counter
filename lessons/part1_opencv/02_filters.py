@@ -29,10 +29,19 @@ Controls
 Try this
 --------
 1. Change BLUR_SIZE to 5, then 51. Why must it be an odd number?
+Kernel size must be an odd number so that there is a clear center pixel
+for symmetric blurring operations.
+
 2. In edges(), change the Canny thresholds (50, 150). What happens with (10, 30)?
    With (200, 300)?
+With (10, 30), the thresholds are low, detecting lots of fine edges and noise.
+ With (200, 300), the thresholds are high, keeping only strong, clear edges.
+
 3. Add a 7th filter: press 7 to show only the red channel, frame[:, :, 2].
    (Remember to add it to the FILTERS dictionary.)
+It displays a grayscale image representing the intensity of the red channel.
+
+
 """
 
 import argparse
@@ -40,7 +49,7 @@ import argparse
 import cv2
 
 WINDOW_NAME = "Lesson 02 - Filters"
-BLUR_SIZE = 21          # size of the blur "window" in pixels: must be odd
+BLUR_SIZE = 51         # size of the blur "window" in pixels: must be odd
 THRESHOLD_LEVEL = 127   # 0-255: pixels brighter than this become white
 
 
@@ -74,7 +83,7 @@ def edges(frame):
     """
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)      # blur first to remove noise
-    return cv2.Canny(gray, 50, 150)
+    return cv2.Canny(gray, 10, 30)
 
 
 def threshold(frame):
@@ -101,6 +110,7 @@ FILTERS = {
     "4": ("Edges", edges),
     "5": ("Threshold", threshold),
     "6": ("Invert", invert),
+    "7": ("lambda", lambda f: f[:, :, 2])
 }
 
 

@@ -133,6 +133,9 @@ def draw_pose(frame, landmarks, show_numbers):
     for a, b in POSE_CONNECTIONS:
         if min(landmarks[a].visibility, landmarks[b].visibility) > 0.5:
             cv2.line(frame, points[a], points[b], (255, 255, 255), 2)
+
+
+            
     for i, (lm, point) in enumerate(zip(landmarks, points)):
         cv2.circle(frame, point, 5, visibility_color(lm.visibility), -1)
         if show_numbers:

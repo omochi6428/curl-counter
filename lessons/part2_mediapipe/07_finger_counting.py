@@ -108,8 +108,10 @@ def is_extended(landmarks, finger, ratio):
         True if the finger counts as extended.
     """
     joint_id, tip_id = FINGERS[finger]
-    anchor = landmarks[PINKY_BASE if finger == "thumb" else WRIST]
-    return distance(landmarks[tip_id], anchor) > ratio * distance(landmarks[joint_id], anchor)
+    tip = landmarks[tip_id]
+    joint = landmarks[joint_id]
+    
+    return tip.y < joint.y
 
 
 def count_fingers(landmarks, ratio):
@@ -167,6 +169,19 @@ def main():
             for landmarks, handedness in zip(result.hand_landmarks, result.handedness):
                 fingers = count_fingers(landmarks, args.ratio)
                 draw_hand(frame, landmarks, fingers)
+
+                is_peace = (
+                    fingers["index"] and 
+                    fingers["middle"] and 
+                    not fingers["thumb"] and 
+                    not fingers["ring"] and 
+                    not fingers["pinky"]
+                )
+
+                if is_peace:
+                    cv2.putText(frame, "PEACE!", (20, 220), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 255), 3)
+
+
                 count = sum(fingers.values())        # True counts as 1, False as 0
                 total += count
                 up = [name for name, extended in fingers.items() if extended]

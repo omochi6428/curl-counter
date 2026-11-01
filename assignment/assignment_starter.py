@@ -26,6 +26,7 @@ Useful lessons: 09 (pose), 10 (states and dead zones), 11 (angles), 12 (CSV).
 
 import argparse
 import csv
+import math
 import time
 from datetime import datetime
 from pathlib import Path
@@ -49,8 +50,8 @@ MIN_VISIBILITY = 0.5
 
 # A rep counts when the angle goes below UP_ANGLE and then back above DOWN_ANGLE.
 # You may tune these numbers. Explain your choice in your report.
-UP_ANGLE = 50
-DOWN_ANGLE = 150
+UP_ANGLE =  90
+DOWN_ANGLE = 140
 
 
 class VideoClock:
@@ -69,6 +70,36 @@ class VideoClock:
 # TODO 1: the elbow angle
 # ---------------------------------------------------------------------------
 def elbow_angle(result, arm):
+
+    if not result.pose_landmarks or not result.pose_world_landmarks:
+        return None
+
+    landmarks = result.pose_landmarks[0]
+    world = result.pose_world_landmarks[0]
+    shoulder_id, elbow_id, wrist_id = ARMS[arm]
+
+    if min(landmarks[shoulder_id].visibility, 
+       landmarks[elbow_id].visibility, 
+       landmarks[wrist_id].visibility) < MIN_VISIBILITY:
+       return None
+
+    world = result.pose_world_landmarks[0]
+    a = (world[shoulder_id].x, world[shoulder_id].y, world[shoulder_id].z)
+    b = (world[elbow_id].x, world[elbow_id].y, world[elbow_id].z)
+    c = (world[wrist_id].x, world[wrist_id].y, world[wrist_id].z)
+
+    ba = [p - q for p, q in zip(a, b)]
+    bc = [p - q for p, q in zip(c, b)]
+
+    length = math.dist(a, b) * math.dist(c, b)
+    if length == 0:
+        return None
+
+    cosine = sum(p * q for p, q in zip(ba, bc)) / length
+
+    return math.degrees(math.acos(max(-1.0, min(1.0, cosine))))
+
+
     """Return the elbow angle of one arm in degrees, or None.
 
     Args:
@@ -86,7 +117,7 @@ def elbow_angle(result, arm):
         - Compute the angle. Lesson 11 shows how. Choose 2D or 3D and
           explain why in your report.
     """
-    return None   # replace this line
+       # replace this line
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +138,22 @@ class RepCounter:
         self.reps = 0
 
     def update(self, angle):
+        if angle is None:
+            return False
+
+        completed_rep = False
+
+        if self.stage == "down" and angle < self.up_angle:
+            self.stage = "up"
+
+        elif self.stage == "up" and angle > self.down_angle:
+            self.stage = "down"
+            self.reps += 1
+            completed_rep = True
+
+        return completed_rep
+
+        
         """Feed in this frame's angle (may be None).
 
         Returns:
@@ -143,8 +190,14 @@ def draw_info(display, angle, counter):
         - Make it look good! A progress bar that fills as the arm curls is a
           nice touch: map angle DOWN_ANGLE -> 0% and UP_ANGLE -> 100%.
     """
-    cv2.putText(display, "TODO 3: draw the count here", (20, 50),
-                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+    cv2.putText(display, f"Reps: {counter.reps}", (30, 90),
+                cv2.FONT_HERSHEY_SIMPLEX, 3.0, (0, 255, 0), 6)
+
+    angle_str = f"{int(angle)}" if angle is not None else "--"
+    info_text = f"Stage: {counter.stage}  Angle: {angle_str}"
+
+    cv2.putText(display, info_text, (30, 150),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
 
 
 # ---------------------------------------------------------------------------
@@ -161,13 +214,19 @@ class RepLogger:
         self.writer.writerow(["time_s", "angle_deg", "stage", "reps"])
 
     def write(self, angle, counter):
+
+        elapsed_time = time.monotonic() - self.started_at
+
+        angle_val = angle if angle is not None else ""
+
+        self.writer.writerow([elapsed_time, angle_val, counter.stage, counter.reps])
         """Add one row.
+        
 
         TODO 4:
             - Write: seconds since started_at, the angle (leave it empty if None),
               counter.stage and counter.reps.
         """
-        pass   # replace this line
 
     def close(self):
         self.file.close()

@@ -61,7 +61,7 @@ GESTURES = ["None", "Closed_Fist", "Open_Palm", "Pointing_Up",
 # What to do when a gesture is confirmed. Change these!
 ACTIONS = {
     "Thumb_Up":    "Nice!",
-    "Thumb_Down":  "Oh no...",
+    "Thumb_Down":  "Booo",
     "Victory":     "Peace!",
     "Open_Palm":   "Hello!",
     "Closed_Fist": "Grab!",

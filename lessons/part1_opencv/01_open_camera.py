@@ -22,8 +22,13 @@ Controls
 Try this
 --------
 1. Print frame.shape inside the loop. What do the three numbers mean?
+1. Height in pixels (rows)　2. Width in pixels (columns)　3. Number of color channels (3 for BGR: Blue, Green, Red)
+
 2. Print frame[0, 0]: the color of the top-left pixel. Point the camera at
    something red. Why is the biggest number the LAST one? (Hint: lesson 03.)
+   The biggest number is the last one because OpenCV uses BGR (Blue, Green, Red) 
+ color order instead of RGB. When pointing at something red, the Red value (the last number) is highest.
+
 3. Change cv2.flip(frame, 1) to cv2.flip(frame, 0), then to -1. What happens?
 """
 
@@ -106,7 +111,10 @@ def main():
 
             # 2. Mirror it (flip left-right) so moving your hand left moves it left on screen.
             if not args.no_mirror:
-                frame = cv2.flip(frame, 1)
+                frame = cv2.flip(frame, -1)
+
+                print(frame.shape)
+                print(frame[0, 0])
 
             # 3. Show it.
             cv2.imshow(WINDOW_NAME, frame)
